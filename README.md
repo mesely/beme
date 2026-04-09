@@ -16,6 +16,20 @@ Or once published to PyPI:
 pip install beme
 ```
 
+### Google Colab
+
+Colab adds `/content` to `sys.path` automatically, which causes it to pick up the repo
+root instead of the actual package. Use this instead of `pip install -e .`:
+
+```python
+!git clone https://github.com/mesely/beme.git /content/beme
+
+import sys
+sys.path.insert(0, '/content/beme')
+
+from beme import BemeMarket
+```
+
 ## Quick Start
 
 **v0.2.0 one-liner:**

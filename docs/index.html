@@ -423,6 +423,19 @@ cd beme</code></pre>
         works from anywhere in your Python environment — scripts, notebooks, other projects.
       </div>
 
+      <h3>Google Colab</h3>
+      <p>
+        Colab automatically adds <code>/content</code> to <code>sys.path</code>, which
+        causes Python to pick up the repo root as a namespace package instead of the real
+        <code>beme</code> package. Skip <code>pip install -e .</code> and use this instead:
+      </p>
+      <pre><code>!git clone https://github.com/mesely/beme.git /content/beme
+
+<span class="kw">import</span> sys
+sys.path.insert(<span class="nm">0</span>, <span class="st">'/content/beme'</span>)
+
+<span class="kw">from</span> beme <span class="kw">import</span> BemeMarket</code></pre>
+
       <h3>Dependencies</h3>
       <p>The following packages are installed automatically:</p>
       <pre><code>numpy>=1.21
