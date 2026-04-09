@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BEME — Bounty-driven Evolutionary Market Ensemble</title>
+  <style>
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3e;
+      --accent:    #6c63ff;
+      --accent2:   #00d4aa;
+      --accent3:   #ff6b6b;
+      --text:      #e2e8f0;
+      --muted:     #8892a4;
+      --code-bg:   #12151f;
+      --tag-bg:    #1e2235;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    nav {
+      width: 260px;
+      min-width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 2rem 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    nav .logo {
+      padding: 0 1.5rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    nav .logo span {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    nav .logo p {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+      line-height: 1.4;
+    }
+
+    nav ul { list-style: none; padding: 0 0.75rem; }
+    nav ul li a {
+      display: block;
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+    }
+    nav ul li a:hover { color: var(--text); background: var(--border); }
+    nav ul li a.active { color: var(--accent); background: rgba(108,99,255,0.1); }
+    nav .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 1rem 1.5rem 0.4rem;
+    }
+
+    main {
+      flex: 1;
+      max-width: 860px;
+      padding: 3rem 3.5rem;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2.5rem;
+      margin-bottom: 3rem;
+    }
+    .hero h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+    .hero .tagline {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 580px;
+    }
+    .badges { margin-top: 1.2rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .badge.green { border-color: var(--accent2); color: var(--accent2); }
+    .badge.purple { border-color: var(--accent); color: var(--accent); }
+    .badge.red { border-color: var(--accent3); color: var(--accent3); }
+
+    /* ── Sections ── */
+    section { margin-bottom: 3.5rem; scroll-margin-top: 2rem; }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 .icon { font-size: 1.1rem; }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 1.5rem 0 0.6rem;
+    }
+    p { color: var(--muted); margin-bottom: 0.75rem; }
+    strong { color: var(--text); }
+
+    /* ── Callout ── */
+    .callout {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .callout.green { border-left-color: var(--accent2); }
+    .callout.red { border-left-color: var(--accent3); }
+    .callout strong { color: var(--text); }
+
+    /* ── Code ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+      line-height: 1.65;
+    }
+    code {
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    }
+    p code, li code, td code {
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      font-size: 0.82rem;
+      color: var(--accent2);
+    }
+
+    /* syntax colouring (manual) */
+    .kw  { color: #c678dd; }
+    .fn  { color: #61afef; }
+    .st  { color: #98c379; }
+    .cm  { color: #5c6370; font-style: italic; }
+    .nm  { color: #e5c07b; }
+    .op  { color: #56b6c2; }
+
+    /* ── Step list ── */
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .steps li::before {
+      content: counter(step);
+      min-width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+    }
+
+    /* ── API cards ── */
+    .api-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .api-card-header {
+      padding: 0.9rem 1.25rem;
+      background: var(--code-bg);
+      border-bottom: 1px solid var(--border);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85rem;
+    }
+    .api-card-header .method { color: var(--accent2); font-weight: 700; }
+    .api-card-header .name   { color: var(--accent);  font-weight: 700; }
+    .api-card-header .params { color: var(--muted); }
+    .api-card-header .ret    { color: var(--accent3); }
+    .api-card-body { padding: 1rem 1.25rem; }
+    .api-card-body p { margin-bottom: 0.5rem; }
+
+    /* ── Param table ── */
+    .param-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.875rem; }
+    .param-table th {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      background: var(--code-bg);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .param-table td {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .param-table tr:last-child td { border-bottom: none; }
+    .param-table .param-name { color: var(--accent2); font-family: monospace; white-space: nowrap; }
+    .param-table .param-type { color: var(--accent3); font-family: monospace; font-size: 0.8rem; }
+    .param-table .param-default { color: var(--accent); font-family: monospace; font-size: 0.8rem; }
+    .param-table .param-desc { color: var(--muted); }
+
+    /* ── Hyperparameter table ── */
+    .hp-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin: 1rem 0; }
+    .hp-table th {
+      text-align: left;
+      padding: 0.6rem 0.9rem;
+      background: var(--code-bg);
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--border);
+    }
+    .hp-table td {
+      padding: 0.7rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .hp-table tr:last-child td { border-bottom: none; }
+    .hp-table .p { color: var(--accent2); font-family: monospace; }
+    .hp-table .s { color: var(--accent3); font-family: monospace; font-size: 0.82rem; }
+    .hp-table .d { color: var(--accent);  font-family: monospace; }
+    .hp-table .desc { color: var(--muted); }
+
+    /* ── Architecture diagram ── */
+    .arch {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem 2rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 2;
+      overflow-x: auto;
+    }
+    .arch .hl { color: var(--accent2); font-weight: 700; }
+    .arch .hl2 { color: var(--accent); }
+    .arch .hl3 { color: var(--accent3); }
+
+    /* ── Math block ── */
+    .math {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent2);
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      font-family: monospace;
+      font-size: 0.875rem;
+      color: var(--accent2);
+      margin: 1rem 0;
+      line-height: 1.9;
+    }
+    .math .comment { color: var(--muted); font-style: italic; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      nav { display: none; }
+      main { padding: 2rem 1.5rem; }
+      .hero h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <nav>
+    <div class="logo">
+      <span>BEME</span>
+      <p>Bounty-driven Evolutionary<br>Market Ensemble</p>
+    </div>
+    <ul>
+      <li class="section-label">Getting Started</li>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#quickstart">Quick Start</a></li>
+
+      <li class="section-label">API Reference</li>
+      <li><a href="#bememarket">BemeMarket</a></li>
+      <li><a href="#initialize-market">initialize_market</a></li>
+      <li><a href="#run-trading-day">run_trading_day</a></li>
+      <li><a href="#predict">predict</a></li>
+      <li><a href="#evolve">evolve</a></li>
+      <li><a href="#portfolio-summary">portfolio_summary</a></li>
+      <li><a href="#multilabelwrapper">MultiLabelWrapper</a></li>
+
+      <li class="section-label">Guides</li>
+      <li><a href="#hyperparams">Hyperparameter Guide</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#theory">Theory & Math</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+    </ul>
+  </nav>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <main>
+
+    <!-- HERO -->
+    <div class="hero">
+      <h1>BEME</h1>
+      <p class="tagline">
+        Bounty-driven Evolutionary Market Ensemble — multi-label classification
+        under class imbalance, powered by prediction markets and evolutionary selection.
+      </p>
+      <div class="badges">
+        <span class="badge purple">v0.1.0</span>
+        <span class="badge green">Python ≥ 3.8</span>
+        <span class="badge green">scikit-learn compatible</span>
+        <span class="badge red">Multi-label</span>
+      </div>
+    </div>
+
+    <!-- ══ INSTALLATION ══ -->
+    <section id="installation">
+      <h2><span class="icon">📦</span> Installation</h2>
+      <p>BEME is not yet on PyPI. Install it directly from the GitHub repository:</p>
+
+      <ol class="steps">
+        <li>
+          <div>
+            <strong>Clone the repository</strong>
+            <pre><code>git clone https://github.com/mesely/beme.git
+cd beme</code></pre>
+          </div>
+        </li>
+        <li>
+          <div>
+            <strong>Install in editable mode</strong>
+            <pre><code>pip install -e .</code></pre>
+            <p>
+              The <code>-e</code> flag installs the package in <em>editable</em> mode —
+              Python points directly at the cloned folder, so any changes you make to the
+              source are immediately reflected without re-installing.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div>
+            <strong>Verify the installation</strong>
+            <pre><code>python -c "from beme import BemeMarket; print('BEME ready')"</code></pre>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout green">
+        <strong>No PyPI required.</strong> <code>pip install -e .</code> is the standard
+        way to install a local package. After this single command, <code>import beme</code>
+        works from anywhere in your Python environment — scripts, notebooks, other projects.
+      </div>
+
+      <h3>Dependencies</h3>
+      <p>The following packages are installed automatically:</p>
+      <pre><code>numpy>=1.21
+scipy>=1.7
+scikit-learn>=1.0
+pandas>=1.3</code></pre>
+    </section>
+
+    <!-- ══ QUICK START ══ -->
+    <section id="quickstart">
+      <h2><span class="icon">⚡</span> Quick Start</h2>
+      <p>A complete runnable example — copy, paste, run.</p>
+      <pre><code><span class="kw">from</span> beme <span class="kw">import</span> BemeMarket, MultiLabelWrapper
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.multioutput <span class="kw">import</span> MultiOutputClassifier
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> make_multilabel_classification
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> f1_score
+
+<span class="cm"># 1. Prepare data</span>
+X, y = make_multilabel_classification(
+    n_samples=<span class="nm">1000</span>, n_features=<span class="nm">50</span>, n_classes=<span class="nm">10</span>, random_state=<span class="nm">42</span>)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.2</span>)
+
+<span class="cm"># 2. Wrap your sklearn estimator</span>
+base_model = MultiLabelWrapper(
+    MultiOutputClassifier(LogisticRegression(max_iter=<span class="nm">1000</span>))
+)
+
+<span class="cm"># 3. Create and initialise the market</span>
+market = BemeMarket(
+    n_funds=<span class="nm">50</span>,
+    leverage=<span class="nm">25.0</span>,
+    temperature=<span class="nm">1.5</span>,
+    bounty_map={<span class="nm">1</span>: <span class="nm">1.5</span>, <span class="nm">2</span>: <span class="nm">2.0</span>, <span class="nm">7</span>: <span class="nm">1.5</span>, <span class="nm">8</span>: <span class="nm">2.0</span>},
+    rebalance_period=<span class="nm">100</span>,
+)
+market.initialize_market(base_model, X_train, y_train)
+
+<span class="cm"># 4. Train — one sample per "trading day"</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(X_train)):
+    market.run_trading_day(X_train[i:i+<span class="nm">1</span>], y_train[i])
+
+<span class="cm"># 5. Evaluate on held-out test set (balances not updated)</span>
+y_pred = market.predict(X_test)
+<span class="fn">print</span>(f1_score(y_test, y_pred, average=<span class="st">'macro'</span>))
+
+<span class="cm"># 6. Inspect portfolio</span>
+<span class="fn">print</span>(market.portfolio_summary())</code></pre>
+
+      <div class="callout">
+        <strong>Tip:</strong> Use <code>market.portfolio_summary()</code> to see which
+        agents have accumulated the most wealth — high-balance agents are your best
+        classifiers.
+      </div>
+    </section>
+
+    <!-- ══ BemeMarket ══ -->
+    <section id="bememarket">
+      <h2><span class="icon">🏛</span> BemeMarket</h2>
+      <p>
+        The main class. Import it and everything is accessible through one object.
+      </p>
+      <pre><code><span class="kw">from</span> beme <span class="kw">import</span> BemeMarket
+
+market = BemeMarket(
+    n_funds=<span class="nm">50</span>,
+    leverage=<span class="nm">25.0</span>,
+    temperature=<span class="nm">1.5</span>,
+    bounty_map=None,          <span class="cm"># uses DEFAULT_BOUNTY_MAP</span>
+    rebalance_period=<span class="nm">100</span>,
+    sector_map=None,          <span class="cm"># reserved for future use</span>
+)</code></pre>
+
+      <h3>Constructor Parameters</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">n_funds</td>
+            <td class="param-type">int</td>
+            <td class="param-default">50</td>
+            <td class="param-desc">
+              Number of hedge fund agents in the market.
+              More funds = more diversity but slower training.
+            </td>
+          </tr>
+          <tr>
+            <td class="param-name">leverage</td>
+            <td class="param-type">float</td>
+            <td class="param-default">25.0</td>
+            <td class="param-desc">
+              Scales the profit/loss magnitude on every trading day.
+              Higher values cause faster convergence but increase the risk
+              of agents going bankrupt on noisy data.
+            </td>
+          </tr>
+          <tr>
+            <td class="param-name">temperature</td>
+            <td class="param-type">float</td>
+            <td class="param-default">1.5</td>
+            <td class="param-desc">
+              Controls how much the richest agent dominates the consensus.
+              Low T (→ 0): winner-takes-all. High T (>> 1): equal voting.
+              For NLP / sparse text data keep this between 1.5–2.5.
+            </td>
+          </tr>
+          <tr>
+            <td class="param-name">bounty_map</td>
+            <td class="param-type">dict | None</td>
+            <td class="param-default">{1:1.5, 2:2.0, 7:1.5, 8:2.0}</td>
+            <td class="param-desc">
+              Per-class reward multipliers <code>{class_index: float}</code>.
+              Classes in this map earn agents extra profit when correctly predicted,
+              creating economic pressure toward minority classes.
+              Pass <code>{}</code> or <code>None</code>… wait — passing
+              <code>None</code> activates the default map above.
+              Pass <code>{}</code> to disable bounty entirely.
+            </td>
+          </tr>
+          <tr>
+            <td class="param-name">rebalance_period</td>
+            <td class="param-type">int</td>
+            <td class="param-default">100</td>
+            <td class="param-desc">
+              Number of trading days between automatic evolutionary rebalancing cycles.
+              Every H days, the weakest agent in each sector is replaced by a clone of
+              the strongest.
+            </td>
+          </tr>
+          <tr>
+            <td class="param-name">sector_map</td>
+            <td class="param-type">dict | None</td>
+            <td class="param-default">None</td>
+            <td class="param-desc">Reserved for future custom sector definitions. Currently unused.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ══ initialize_market ══ -->
+    <section id="initialize-market">
+      <h2><span class="icon">🚀</span> initialize_market</h2>
+      <div class="api-card">
+        <div class="api-card-header">
+          <span class="method">market.</span><span class="name">initialize_market</span><span class="params">(base_model, X_train, y_train)</span>
+          <span class="ret"> → None</span>
+        </div>
+        <div class="api-card-body">
+          <p>
+            Spawns <code>n_funds</code> agents. Each agent receives a <strong>stratified
+            70% bootstrap</strong> of the training data and independently trains a
+            deep copy of <code>base_model</code>.
+          </p>
+          <p>
+            After this call, <code>market.funds</code> is populated with agent dicts
+            containing their fitted models, starting balance (100.0), a random risk
+            factor, sector assignment, and active class list.
+          </p>
+        </div>
+      </div>
+
+      <h3>Parameters</h3>
+      <table class="param-table">
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">base_model</td>
+            <td class="param-type">sklearn estimator</td>
+            <td class="param-desc">
+              Must implement <code>fit(X, y)</code> and <code>predict_proba(X)</code>.
+              It is <strong>deep-copied</strong> <code>n_funds</code> times, so passing
+              an already-fitted model is fine — each agent starts from the same
+              architecture but trains on a different data subset.
+              <br><br>
+              For standard sklearn multi-label pipelines, wrap with
+              <a href="#multilabelwrapper"><code>MultiLabelWrapper</code></a>.
+            </td>
+          </tr>
+          <tr>
+            <td class="param-name">X_train</td>
+            <td class="param-type">array-like (n_samples, n_features)</td>
+            <td class="param-desc">Feature matrix.</td>
+          </tr>
+          <tr>
+            <td class="param-name">y_train</td>
+            <td class="param-type">array-like (n_samples, n_classes)</td>
+            <td class="param-desc">Binary label matrix. Each row is a multi-hot vector.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>Sector assignment:</strong> Agents 0 → n_funds/2-1 are placed in the
+        <strong>COMMODITY</strong> sector (active on classes 1, 2, 4, 7, 9). The remaining
+        agents go to <strong>FINANCE</strong> (classes 0, 3, 5, 6, 8). Each class is
+        priced exclusively by its sector agents.
+      </div>
+
+      <pre><code><span class="cm"># Example — with a MultiOutputClassifier wrapper</span>
+<span class="kw">from</span> beme <span class="kw">import</span> BemeMarket, MultiLabelWrapper
+<span class="kw">from</span> sklearn.multioutput <span class="kw">import</span> MultiOutputClassifier
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestClassifier
+
+market = BemeMarket()
+base = MultiLabelWrapper(MultiOutputClassifier(RandomForestClassifier(n_estimators=<span class="nm">50</span>)))
+market.initialize_market(base, X_train, y_train)</code></pre>
+    </section>
+
+    <!-- ══ run_trading_day ══ -->
+    <section id="run-trading-day">
+      <h2><span class="icon">📈</span> run_trading_day</h2>
+      <div class="api-card">
+        <div class="api-card-header">
+          <span class="method">market.</span><span class="name">run_trading_day</span><span class="params">(x_i, y_true)</span>
+          <span class="ret"> → np.ndarray (n_classes,)</span>
+        </div>
+        <div class="api-card-body">
+          <p>
+            Processes <strong>one labelled sample</strong>. This is the core training step.
+            Call it once per sample in your training loop.
+          </p>
+          <p>
+            Internally it: collects all agent predictions → computes market consensus
+            prices → calculates each agent's P&amp;L → updates balances → returns the
+            binary prediction. Automatically triggers evolution every
+            <code>rebalance_period</code> calls.
+          </p>
+        </div>
+      </div>
+
+      <h3>Parameters</h3>
+      <table class="param-table">
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">x_i</td>
+            <td class="param-type">array-like (1, n_features)</td>
+            <td class="param-desc">Single sample. Must be 2-D with shape (1, n_features).</td>
+          </tr>
+          <tr>
+            <td class="param-name">y_true</td>
+            <td class="param-type">array-like (n_classes,)</td>
+            <td class="param-desc">Ground truth binary vector for this sample.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Returns</h3>
+      <p><code>np.ndarray</code> of shape <code>(n_classes,)</code> — binary predictions
+      based on the market consensus <em>before</em> the balance update (so the returned
+      prediction is what the market believed before seeing the true label).</p>
+
+      <pre><code><span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(X_train)):
+    y_hat = market.run_trading_day(
+        X_train[i:i+<span class="nm">1</span>],   <span class="cm"># shape (1, n_features)</span>
+        y_train[i]        <span class="cm"># shape (n_classes,)</span>
+    )</code></pre>
+
+      <div class="callout red">
+        <strong>Do not call this on test data.</strong> <code>run_trading_day</code>
+        updates agent balances using the true label. Use <code>predict()</code>
+        for inference on held-out sets.
+      </div>
+    </section>
+
+    <!-- ══ predict ══ -->
+    <section id="predict">
+      <h2><span class="icon">🔮</span> predict</h2>
+      <div class="api-card">
+        <div class="api-card-header">
+          <span class="method">market.</span><span class="name">predict</span><span class="params">(X)</span>
+          <span class="ret"> → np.ndarray (n_samples, n_classes)</span>
+        </div>
+        <div class="api-card-body">
+          <p>
+            Batch inference. <strong>Does not update balances or trigger evolution.</strong>
+            Safe to call on validation and test sets.
+          </p>
+        </div>
+      </div>
+
+      <h3>Parameters</h3>
+      <table class="param-table">
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">X</td>
+            <td class="param-type">array-like (n_samples, n_features)</td>
+            <td class="param-desc">Feature matrix of samples to classify.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Returns</h3>
+      <p><code>np.ndarray</code> of shape <code>(n_samples, n_classes)</code> — binary predictions.</p>
+
+      <pre><code>y_pred = market.predict(X_test)
+
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> f1_score, classification_report
+<span class="fn">print</span>(f1_score(y_test, y_pred, average=<span class="st">'macro'</span>))
+<span class="fn">print</span>(classification_report(y_test, y_pred))</code></pre>
+    </section>
+
+    <!-- ══ evolve ══ -->
+    <section id="evolve">
+      <h2><span class="icon">🧬</span> evolve</h2>
+      <div class="api-card">
+        <div class="api-card-header">
+          <span class="method">market.</span><span class="name">evolve</span><span class="params">()</span>
+          <span class="ret"> → None</span>
+        </div>
+        <div class="api-card-body">
+          <p>
+            Manually triggers one evolutionary rebalancing cycle across all sectors.
+            Usually called automatically every <code>rebalance_period</code> days,
+            but you can call it explicitly if needed.
+          </p>
+        </div>
+      </div>
+      <pre><code><span class="cm"># Force an immediate evolution step</span>
+market.evolve()</code></pre>
+    </section>
+
+    <!-- ══ portfolio_summary ══ -->
+    <section id="portfolio-summary">
+      <h2><span class="icon">📊</span> portfolio_summary</h2>
+      <div class="api-card">
+        <div class="api-card-header">
+          <span class="method">market.</span><span class="name">portfolio_summary</span><span class="params">()</span>
+          <span class="ret"> → pd.DataFrame</span>
+        </div>
+        <div class="api-card-body">
+          <p>Returns a snapshot of every agent's current state.</p>
+        </div>
+      </div>
+
+      <h3>Columns</h3>
+      <table class="param-table">
+        <thead>
+          <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="param-name">agent_id</td><td class="param-type">int</td><td class="param-desc">Agent index (0 → n_funds-1)</td></tr>
+          <tr><td class="param-name">sector</td><td class="param-type">str</td><td class="param-desc"><code>COMMODITY</code> or <code>FINANCE</code></td></tr>
+          <tr><td class="param-name">balance</td><td class="param-type">float</td><td class="param-desc">Current wealth. Starts at 100.0, minimum 1.0. Higher = better performance.</td></tr>
+          <tr><td class="param-name">risk</td><td class="param-type">float</td><td class="param-desc">Risk appetite sampled at creation from Uniform(0.5, 1.0). Fixed for agent lifetime.</td></tr>
+          <tr><td class="param-name">active_classes</td><td class="param-type">list[int]</td><td class="param-desc">Which classes this agent trades and influences.</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code>df = market.portfolio_summary()
+
+<span class="cm"># Top performers</span>
+<span class="fn">print</span>(df.sort_values(<span class="st">'balance'</span>, ascending=<span class="nm">False</span>).head(<span class="nm">10</span>))
+
+<span class="cm"># Average balance by sector</span>
+<span class="fn">print</span>(df.groupby(<span class="st">'sector'</span>)[<span class="st">'balance'</span>].mean())</code></pre>
+    </section>
+
+    <!-- ══ MultiLabelWrapper ══ -->
+    <section id="multilabelwrapper">
+      <h2><span class="icon">🔧</span> MultiLabelWrapper</h2>
+      <div class="api-card">
+        <div class="api-card-header">
+          <span class="kw">class </span><span class="name">MultiLabelWrapper</span><span class="params">(estimator)</span>
+        </div>
+        <div class="api-card-body">
+          <p>
+            Adapter that makes any sklearn estimator whose <code>predict_proba</code>
+            returns a <em>list of arrays</em> (e.g. <code>MultiOutputClassifier</code>)
+            compatible with BemeMarket.
+          </p>
+          <p>
+            BemeMarket expects <code>predict_proba(X)</code> to return a single
+            <code>(n_samples, n_classes)</code> array. <code>MultiOutputClassifier</code>
+            returns a list of <code>(n_samples, 2)</code> arrays — one per class.
+            This wrapper normalises that into the expected shape.
+          </p>
+        </div>
+      </div>
+
+      <h3>When is it needed?</h3>
+      <table class="param-table">
+        <thead>
+          <tr><th>Estimator</th><th>Needs wrapper?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="param-name">MultiOutputClassifier(...)</td><td class="param-desc">✅ Yes</td></tr>
+          <tr><td class="param-name">ClassifierChain(...)</td><td class="param-desc">✅ Yes</td></tr>
+          <tr><td class="param-name">Custom model returning (n, n_classes)</td><td class="param-desc">❌ No</td></tr>
+        </tbody>
+      </table>
+
+      <pre><code><span class="kw">from</span> beme <span class="kw">import</span> MultiLabelWrapper
+<span class="kw">from</span> sklearn.multioutput <span class="kw">import</span> MultiOutputClassifier
+<span class="kw">from</span> sklearn.svm <span class="kw">import</span> SVC
+
+<span class="cm"># SVC needs probability=True for predict_proba</span>
+base = MultiLabelWrapper(
+    MultiOutputClassifier(SVC(probability=<span class="nm">True</span>, kernel=<span class="st">'rbf'</span>))
+)
+market.initialize_market(base, X_train, y_train)</code></pre>
+    </section>
+
+    <!-- ══ HYPERPARAMS ══ -->
+    <section id="hyperparams">
+      <h2><span class="icon">🎛</span> Hyperparameter Guide</h2>
+
+      <table class="hp-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Symbol</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="p">n_funds</td>
+            <td class="s">N</td>
+            <td class="d">50</td>
+            <td class="desc">Number of hedge fund agents. More agents = more diversity but slower per-sample training. 30–100 is a practical range.</td>
+          </tr>
+          <tr>
+            <td class="p">leverage</td>
+            <td class="s">L</td>
+            <td class="d">25.0</td>
+            <td class="desc">Scales P&amp;L magnitude. High values accelerate learning but can bankrupt good agents on noisy samples. Lower to 5–10 for noisy or time-series data.</td>
+          </tr>
+          <tr>
+            <td class="p">temperature</td>
+            <td class="s">T</td>
+            <td class="d">1.5</td>
+            <td class="desc">Controls consensus softness. T → 0: richest agent monopolises the price. T → ∞: equal vote. NLP/text: 1.5–2.5. Tabular: 1.0–1.5.</td>
+          </tr>
+          <tr>
+            <td class="p">bounty_map</td>
+            <td class="s">β<sub>c</sub></td>
+            <td class="d">{1:1.5, 2:2.0, 7:1.5, 8:2.0}</td>
+            <td class="desc">Per-class reward multipliers. Assign higher values to rare / minority classes to incentivise agents to detect them. Pass <code>{}</code> to disable.</td>
+          </tr>
+          <tr>
+            <td class="p">rebalance_period</td>
+            <td class="s">H</td>
+            <td class="d">100</td>
+            <td class="desc">Days between evolutionary cycles. Lower values = more aggressive replacement. Recommended range: 50–200 for datasets with 1000–10000 samples.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Tuning Recipes</h3>
+
+      <div class="callout green">
+        <strong>NLP / sparse text (TF-IDF, embeddings):</strong><br>
+        Keep <code>temperature</code> high (1.5–2.5). Logistic models on text tend to
+        produce extreme probabilities (very close to 0 or 1). High temperature softens
+        the weighted average and prevents one agent from dominating the consensus
+        based on a single overconfident prediction.
+      </div>
+
+      <div class="callout">
+        <strong>Noisy / time-series signals:</strong><br>
+        Keep <code>leverage</code> low (5–10). Random noise spikes can cause large
+        one-off losses that bankrupt successful agents before they've built enough
+        history to be protected by evolution.
+      </div>
+
+      <div class="callout red">
+        <strong>Heavy class imbalance:</strong><br>
+        Assign high <code>bounty_map</code> multipliers (2.0–5.0) to the rarest classes.
+        Without bounty, agents learn to ignore minority classes because correctly
+        predicting the majority is economically optimal.
+      </div>
+    </section>
+
+    <!-- ══ HOW IT WORKS ══ -->
+    <section id="how-it-works">
+      <h2><span class="icon">🏗</span> How It Works</h2>
+
+      <h3>1 · Sectoral Isolation</h3>
+      <p>
+        Agents are divided into two rooms: <strong>COMMODITY</strong> (classes 1, 2, 4, 7, 9)
+        and <strong>FINANCE</strong> (classes 0, 3, 5, 6, 8). Each room covers a disjoint set
+        of classes. A class is priced <em>only</em> by the agents in its sector, which reduces
+        cross-class noise and lets agents develop deep expertise in their assigned label subset
+        rather than spreading capacity thinly across all classes.
+      </p>
+
+      <h3>2 · Economic Incentive — Bounty</h3>
+      <p>
+        Rare classes carry higher <code>β<sub>c</sub></code> multipliers. An agent that
+        correctly detects a minority class earns disproportionately more balance than one
+        that detects a common class. This creates automatic economic pressure: agents that
+        ignore rare classes fall behind in wealth and eventually get replaced, while those
+        that specialise in detecting them accumulate capital and gain more influence over the
+        final consensus price.
+      </p>
+
+      <h3>3 · Evolutionary Selection</h3>
+      <p>
+        Every <code>H</code> days the weakest agent (lowest balance) in each sector is
+        replaced by a <strong>deep copy</strong> of the strongest (highest balance). A 10%
+        balance transfer is made from parent to child, giving the clone a fresh financial
+        start (at least 100.0) while slightly penalising the parent to keep competitive
+        pressure alive. Over many cycles this propagates successful strategies across the
+        sector while continually pruning underperformers.
+      </p>
+    </section>
+
+    <!-- ══ THEORY ══ -->
+    <section id="theory">
+      <h2><span class="icon">📐</span> Theory &amp; Math</h2>
+
+      <h3>Market Price Discovery</h3>
+      <p>
+        For each class <em>c</em>, the market price is a temperature-scaled sigmoid of the
+        balance-weighted average logit:
+      </p>
+      <div class="math">
+P<sub>c</sub> = sigmoid( L̄<sub>c</sub> / T )<br>
+<br>
+L̄<sub>c</sub> = Σ<sub>i ∈ Sector_c</sub>( B<sub>i</sub> · logit(p<sub>i,c</sub>) )<br>
+        ───────────────────────────────────────────<br>
+             Σ<sub>i ∈ Sector_c</sub>( B<sub>i</sub> )<br>
+<br>
+<span class="comment">where p_{i,c} is clipped to [0.01, 0.99] before logit</span>
+      </div>
+
+      <h3>Agent P&amp;L</h3>
+      <p>
+        After observing the true label, each agent's balance is updated:
+      </p>
+      <div class="math">
+ΔB<sub>i</sub> = Σ<sub>c ∈ active_classes_i</sub> [
+  ( y<sub>true</sub>[c] − P<sub>c</sub> )   <span class="comment">← market was wrong by this much</span>
+  × ( p<sub>i,c</sub> − P<sub>c</sub> )     <span class="comment">← agent beat the market by this much</span>
+  × risk<sub>i</sub>                         <span class="comment">← agent's own risk appetite</span>
+  × L                                        <span class="comment">← leverage</span>
+  × β<sub>c</sub>                            <span class="comment">← bounty multiplier</span>
+]<br>
+<br>
+B<sub>i</sub> = max(1.0,  B<sub>i</sub> + ΔB<sub>i</sub>)
+      </div>
+
+      <h3>Evolutionary Cloning</h3>
+      <div class="math">
+child.model    = deepcopy(parent.model)<br>
+transfer       = parent.balance × 0.1<br>
+parent.balance -= transfer<br>
+child.balance  = max(100.0, transfer)
+      </div>
+    </section>
+
+    <!-- ══ ARCHITECTURE ══ -->
+    <section id="architecture">
+      <h2><span class="icon">🗺</span> Architecture</h2>
+      <div class="arch">
+<span class="hl">  Input x_i</span>
+        |
+        v
+ <span class="hl2">[Agent 1 .. N]</span>  predict_proba(x_i)  → p_{i,c} clipped to [0.01, 0.99]
+        |
+        v
+ <span class="hl">Market Price Discovery</span>
+   For each class c:
+     L̄_c = balance-weighted logit average  (over Sector_c agents only)
+     P_c  = sigmoid( L̄_c / T )
+        |
+        v
+  <span class="hl2">y_hat[c] = 1 if P_c > 0.5 else 0</span>   ← returned immediately
+        |
+        v  (training mode only — true label is known)
+ <span class="hl3">P&amp;L + Bounty Update</span>
+   ΔB_i = Σ_c [ (y_true[c] − P_c) × (p_{i,c} − P_c) × risk_i × L × β_c ]
+   B_i  = max(1.0, B_i + ΔB_i)
+        |
+        v
+ <span class="hl">Every H days → Evolutionary Rebalancing</span>
+   COMMODITY sector: clone top → replace bottom
+   FINANCE   sector: clone top → replace bottom
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('section[id], div[id]');
+  const links    = document.querySelectorAll('nav a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
