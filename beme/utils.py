@@ -31,8 +31,21 @@ class MultiLabelWrapper:
     def predict_proba(self, X):
         raw = self.estimator.predict_proba(X)
         if isinstance(raw, list):
-            # MultiOutputClassifier returns list of (n_samples, 2) arrays
-            return np.column_stack([arr[:, 1] for arr in raw])
+            # MultiOutputClassifier returns a list of (n_samples, n_classes_c) arrays.
+            # Normally n_classes_c == 2 (binary per label).
+            # DummyClassifier on a degenerate column returns (n_samples, 1) —
+            # in that case there is only one known class (all 0s or all 1s).
+            # We return 0.0 probability of the positive class for those columns.
+            n_samples = raw[0].shape[0]
+            cols = []
+            for arr in raw:
+                if arr.shape[1] >= 2:
+                    cols.append(arr[:, 1])
+                else:
+                    # Degenerate: only one class seen during training.
+                    # Positive-class probability is 0 (safe conservative default).
+                    cols.append(np.zeros(n_samples))
+            return np.column_stack(cols)
         return raw
 
     def __deepcopy__(self, memo):

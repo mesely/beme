@@ -1,11 +1,10 @@
 import copy
 import numpy as np
 import scipy.sparse
-from scipy.special import logit, expit  # noqa: F401 (used by submodules)
 
 from .pricing import get_market_prices
 from .bounty  import DEFAULT_BOUNTY_MAP, get_bounty
-from .utils   import portfolio_summary
+from .utils   import portfolio_summary, MultiLabelWrapper
 
 
 class BemeMarket:
@@ -17,13 +16,13 @@ class BemeMarket:
     touching the orchestration logic.
 
     Lifecycle hooks (override in subclasses):
-        _on_day_start(x_i, y_true)          — before predictions are gathered
+        _on_day_start(day_index, x_i)           — before predictions
         _calculate_pnl(agent, market_price,
-                       agent_pred, y_true_c,
-                       bounty)              — per-class P&L delta (returns float)
-        _on_day_end()                       — after all balances are updated
+                       y_true_c, agent_pred,
+                       bounty)                  — per-class P&L delta (float)
+        _on_day_end()                           — after all balances updated
         _on_rebalance(sector_name,
-                      parent, child)        — inside evolution, before model copy
+                      parent, child)            — inside evolution, before clone
 
     Parameters
     ----------
@@ -33,13 +32,13 @@ class BemeMarket:
         Global P&L scale. Higher = faster convergence, higher bankruptcy risk.
         Default: 25.0.
     temperature : float
-        Consensus softness. Low T = richest agent dominates.
-        High T = equal vote. Default: 1.5.
+        Consensus softness. Low T = richest dominates; High T = equal vote.
+        Default: 1.5.
     bounty_map : dict, 'auto', or None
         Per-class reward multipliers.
-        'auto'  — computed from y_train: β_c = 1 + log(max_count / count_c)
-        None    — default map {1:1.5, 2:2.0, 7:1.5, 8:2.0}
-        {}      — disables bounty entirely
+        'auto' — computed from y_train: β_c = 1 + log(max_count / count_c)
+        None   — default map {1:1.5, 2:2.0, 7:1.5, 8:2.0}
+        {}     — disables bounty entirely
     rebalance_period : int
         Trading days between evolutionary rebalancing cycles. Default: 100.
     sector_map : dict or None
@@ -62,10 +61,10 @@ class BemeMarket:
         self.sector_map       = sector_map
         self.funds            = []
         self._day             = 0
-        self._bounty_config   = bounty_map  # raw value; resolved in initialize_market
+        self._bounty_config   = bounty_map
 
         if bounty_map == 'auto':
-            self.bounty_map = {}            # filled in initialize_market
+            self.bounty_map = {}
         elif bounty_map is None:
             self.bounty_map = dict(DEFAULT_BOUNTY_MAP)
         else:
@@ -75,23 +74,41 @@ class BemeMarket:
     # Lifecycle hooks — base implementations (no-ops / defaults)
     # ──────────────────────────────────────────────────────────────
 
-    def _on_day_start(self, x_i, y_true):
+    def _on_day_start(self, day_index: int, x_i):
         """Called before agent predictions are gathered.
 
-        Override to inject pre-processing, logging, or dynamic parameter
-        adjustments at the start of each trading day.
+        Parameters
+        ----------
+        day_index : int
+            Current trading day counter (self._day before increment).
+        x_i : array-like or sparse row
+            Feature vector for this sample.
         """
 
-    def _calculate_pnl(self, agent, market_price, agent_pred, y_true_c, bounty):
+    def _calculate_pnl(
+        self,
+        agent: dict,
+        market_price: float,
+        y_true_c: float,
+        agent_pred: float,
+        bounty: float,
+    ) -> float:
         """Compute the P&L contribution for one agent on one class.
+
+        Parameters
+        ----------
+        agent        : agent dict (has 'risk', 'balance', 'sector', …)
+        market_price : consensus price for class c
+        y_true_c     : ground-truth binary label for class c
+        agent_pred   : agent's clipped probability for class c
+        bounty       : β_c reward multiplier
 
         Returns
         -------
-        float
-            delta_B contribution for class c.
+        float — delta_B contribution
         """
         return (
-            (y_true_c - market_price)
+            (y_true_c    - market_price)
             * (agent_pred - market_price)
             * agent['risk']
             * self.leverage
@@ -99,23 +116,17 @@ class BemeMarket:
         )
 
     def _on_day_end(self):
-        """Called after all agent balances have been updated for the day.
+        """Called after all agent balances have been updated for the day."""
 
-        Override to add decay, taxes, logging, or any post-day housekeeping.
-        """
-
-    def _on_rebalance(self, sector_name, parent, child):
+    def _on_rebalance(self, sector_name: str, parent: dict, child: dict):
         """Called inside the evolution cycle, just before the child receives
         the parent's model.
 
         Parameters
         ----------
-        sector_name : str
-            'COMMODITY' or 'FINANCE'.
-        parent : dict
-            Highest-balance agent in the sector (the winner).
-        child : dict
-            Lowest-balance agent in the sector (to be replaced).
+        sector_name : 'COMMODITY' or 'FINANCE'
+        parent      : highest-balance agent in the sector (the winner)
+        child       : lowest-balance agent in the sector (to be replaced)
         """
 
     # ──────────────────────────────────────────────────────────────
@@ -124,9 +135,6 @@ class BemeMarket:
 
     def initialize_market(self, base_model, X_train, y_train):
         """Fit n_funds agents on bootstrap subsets of training data.
-
-        If bounty_map='auto' was set, per-class multipliers are computed
-        from y_train label frequencies before agents are spawned.
 
         Parameters
         ----------
@@ -152,7 +160,6 @@ class BemeMarket:
             X_in, _, y_in, _ = train_test_split(
                 X_train, y_train, test_size=0.3, random_state=i)
 
-            # sklearn estimators require dense y
             if scipy.sparse.issparse(y_in):
                 y_in = y_in.toarray()
 
@@ -161,9 +168,22 @@ class BemeMarket:
                 m.fit(X_in, y_in)
             except ValueError:
                 # Bootstrap subset may lack both label values for some class;
-                # fall back to the full training set for this agent.
-                y_full = y_train.toarray() if scipy.sparse.issparse(y_train) else y_train
-                m.fit(X_train, y_full)
+                # try the full training set first.
+                try:
+                    y_full = (y_train.toarray()
+                              if scipy.sparse.issparse(y_train) else y_train)
+                    m.fit(X_train, y_full)
+                except ValueError:
+                    # Absolute last resort (tiny datasets where even the full y
+                    # has degenerate columns): fall back to a majority-class dummy.
+                    from sklearn.dummy       import DummyClassifier
+                    from sklearn.multioutput import MultiOutputClassifier
+                    y_full = (y_train.toarray()
+                              if scipy.sparse.issparse(y_train) else np.asarray(y_train))
+                    m = MultiLabelWrapper(
+                        MultiOutputClassifier(DummyClassifier(strategy='most_frequent'))
+                    )
+                    m.fit(X_train, y_full)
 
             sector         = "COMMODITY" if i < (self.n_funds // 2) else "FINANCE"
             active_classes = [1, 2, 4, 7, 9] if sector == "COMMODITY" else [0, 3, 5, 6, 8]
@@ -179,14 +199,14 @@ class BemeMarket:
         """High-level sklearn-compatible training entry point.
 
         Initialises the market (if not done yet) then runs the full online
-        trading loop over (X, y). Returns self for method chaining.
+        trading loop. Returns self for method chaining.
 
         Parameters
         ----------
         X : array-like or sparse (n_samples, n_features)
         y : array-like or sparse (n_samples, n_classes)
         base_model : sklearn estimator or None
-            Required on first call; ignored if market is already initialised.
+            Required on first call; ignored if market already initialised.
 
         Returns
         -------
@@ -201,7 +221,7 @@ class BemeMarket:
                 )
             self.initialize_market(base_model, X, y)
 
-        n_samples = X.shape[0]  # works for dense and sparse
+        n_samples = X.shape[0]
 
         try:
             from tqdm import tqdm
@@ -224,11 +244,11 @@ class BemeMarket:
         """Process one labelled sample. Updates all agent balances.
 
         Hook call order:
-            1. _on_day_start(x_i, y_true)
-            2. [collect predictions, compute market prices]
-            3. _calculate_pnl(...)  ← called once per (agent, class) pair
-            4. [update balances]
-            5. [optional] evolve()  ← if day % rebalance_period == 0
+            1. _on_day_start(day_index, x_i)
+            2. collect predictions → compute market prices
+            3. _calculate_pnl(agent, market_price, y_true_c, agent_pred, bounty)
+            4. update balances
+            5. [optional] evolve() if day % rebalance_period == 0
             6. _on_day_end()
 
         Parameters
@@ -240,23 +260,20 @@ class BemeMarket:
         -------
         y_hat : np.ndarray (n_classes,), binary prediction
         """
-        # ── Sparse y_true guard ───────────────────────────────────
         if hasattr(y_true, "toarray"):
             y_true = y_true.toarray().flatten()
         y_true = np.asarray(y_true, dtype=float)
 
-        # ── Hook 1 ───────────────────────────────────────────────
-        self._on_day_start(x_i, y_true)
+        # Hook 1
+        self._on_day_start(self._day, x_i)
 
-        # ── Collect agent predictions ─────────────────────────────
         preds = np.array([
             np.clip(f['model'].predict_proba(x_i)[0], 0.01, 0.99)
             for f in self.funds
         ])
-
         market_prices = get_market_prices(self.funds, preds, self.T)
 
-        # ── Hook 3: per-class P&L (via _calculate_pnl) ───────────
+        # Hook 2: _calculate_pnl per (agent, class)
         for idx, f in enumerate(self.funds):
             profit_day = 0.0
             for c in f['active_classes']:
@@ -264,18 +281,17 @@ class BemeMarket:
                 profit_day += self._calculate_pnl(
                     agent=f,
                     market_price=market_prices[c],
-                    agent_pred=preds[idx, c],
                     y_true_c=y_true[c],
+                    agent_pred=preds[idx, c],
                     bounty=bounty,
                 )
             f['balance'] = max(1.0, f['balance'] + profit_day)
 
-        # ── Evolution trigger ─────────────────────────────────────
         self._day += 1
         if self._day % self.rebalance_period == 0:
             self.evolve()
 
-        # ── Hook 4 ───────────────────────────────────────────────
+        # Hook 3
         self._on_day_end()
 
         return (market_prices > 0.5).astype(int)
@@ -283,12 +299,8 @@ class BemeMarket:
     def evolve(self):
         """Run one evolutionary rebalancing cycle across all sectors.
 
-        For each sector: the weakest agent (lowest balance) is replaced by
-        a deep copy of the strongest (highest balance). A 10% balance transfer
-        is made from parent to child.
-
-        The _on_rebalance(sector_name, parent, child) hook fires just before
-        the model copy, allowing subclasses to intercept or veto the transfer.
+        The _on_rebalance hook fires just before the model copy, letting
+        subclasses intercept or log the transfer.
         """
         for sector_name in ("COMMODITY", "FINANCE"):
             sector_funds = [f for f in self.funds if f['sector'] == sector_name]
@@ -298,7 +310,6 @@ class BemeMarket:
             parent = sector_funds[0]
             child  = sector_funds[-1]
 
-            # ── Hook ─────────────────────────────────────────────
             self._on_rebalance(sector_name, parent, child)
 
             child['model']     = copy.deepcopy(parent['model'])
@@ -321,7 +332,6 @@ class BemeMarket:
         np.ndarray (n_samples, n_classes), binary
         """
         n_samples = X.shape[0]
-
         all_preds = np.stack([
             np.clip(f['model'].predict_proba(X), 0.01, 0.99)
             for f in self.funds
