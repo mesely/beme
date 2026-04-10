@@ -1,5 +1,6 @@
 from .market    import BemeMarket
 from .utils     import MultiLabelWrapper
+from .autobeme  import AutoBEME
 from .templates import (
     DecayMarket,
     AlphaMarket,
@@ -13,6 +14,7 @@ from .templates import (
 __all__ = [
     "BemeMarket",
     "MultiLabelWrapper",
+    "AutoBEME",
     # Templates
     "DecayMarket",
     "AlphaMarket",
