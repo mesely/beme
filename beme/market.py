@@ -229,7 +229,9 @@ class BemeMarket:
                     )
                     m.fit(X_train, y_full)
 
-            active_classes = [1, 2, 4, 7, 9] if sector == "COMMODITY" else [0, 3, 5, 6, 8]
+            _n_cls = y_train.shape[1] if hasattr(y_train, 'shape') else len(y_train[0])
+            _ids   = list(range(_n_cls))
+            active_classes = _ids[1::2] if sector == "COMMODITY" else _ids[0::2]
             self.funds.append({
                 'model':          m,
                 'balance':        100.0,
